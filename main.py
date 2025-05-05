@@ -1,42 +1,49 @@
 
 import ccxt
-import os
 import time
+import os
+import pandas as pd
 from datetime import datetime
 
-def get_close_price():
-    api_key = os.getenv('HTX_API_KEY')
-    api_secret = os.getenv('HTX_API_SECRET')
+# Load environment variables for API keys
+API_KEY = os.getenv('HTX_API_KEY')
+API_SECRET = os.getenv('HTX_API_SECRET')
 
-    exchange = ccxt.htx({
-        'apiKey': api_key,
-        'secret': api_secret,
-        'enableRateLimit': True
-    })
+# Initialize the exchange
+exchange = ccxt.huobi({
+    'apiKey': API_KEY,
+    'secret': API_SECRET,
+})
 
-    symbol = 'ETH/USDT'
-    timeframe = '1m'
+# Define the trading symbol and the file to store the data
+symbol = 'BTC/USDT'
+filename = 'data_log.txt'
 
-    # Получаем последнюю 1 свечу
-    ohlcv = exchange.fetch_ohlcv(symbol, timeframe, limit=1)[0]
+def fetch_data():
+    try:
+        # Fetch ticker data from the exchange
+        ticker = exchange.fetch_ticker(symbol)
+        return ticker
+    except ccxt.BaseError as e:
+        print(f"Error fetching data from exchange: {e}")
+        return None
 
-    timestamp = datetime.utcfromtimestamp(ohlcv[0] / 1000).isoformat() + 'Z'
-    close_price = ohlcv[4]
+def write_data_to_file(data):
+    # Convert the data into a readable format
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    log_data = f"{timestamp}, {data['symbol']}, {data['last']}, {data['high']}, {data['low']}, {data['bid']}, {data['ask']}
+"
+    
+    # Write to the log file
+    with open(filename, 'a') as file:
+        file.write(log_data)
 
-    return timestamp, close_price
-
-def write_to_file(timestamp, close_price):
-    line = f"{timestamp}, ETH/USDT, close: {close_price}\n"
-    with open("data_log.txt", "a") as file:
-        file.write(line)
-    print("Записано:", line.strip())
+def main():
+    while True:
+        data = fetch_data()
+        if data:
+            write_data_to_file(data)
+        time.sleep(60)  # Fetch new data every 60 seconds
 
 if __name__ == "__main__":
-    print("DATA ENGINE 0.4 запущен. Сбор данных каждую минуту.")
-    while True:
-        try:
-            timestamp, close_price = get_close_price()
-            write_to_file(timestamp, close_price)
-        except Exception as e:
-            print("Ошибка:", e)
-        time.sleep(60)
+    main()
