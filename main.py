@@ -8,11 +8,12 @@ def get_close_price():
     api_key = os.getenv('HTX_API_KEY')
     api_secret = os.getenv('HTX_API_SECRET')
 
-    exchange = ccxt.huobi({
-        'apiKey': api_key,
-        'secret': api_secret,
-        'enableRateLimit': True
-    })
+exchange = ccxt.huobi({
+    'apiKey': api_key,
+    'secret': api_secret,
+    'options': {'defaultType': 'spot'},
+    'enableRateLimit': True
+})
 
     symbol = 'ETH/USDT'
     timeframe = '1m'
